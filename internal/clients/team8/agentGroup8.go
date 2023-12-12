@@ -292,24 +292,27 @@ func (bb *Agent8) DictateDirection() uuid.UUID {
 
 // Dicide the VotingWeight for each agent on our bike
 func (bb *Agent8) DecideWeights(action utils.Action) map[uuid.UUID]float64 {
-	// initialise the weightsMap
+	fellowBikers := bb.GetFellowBikers()
+	totalWeight := 0.0
 	weights := make(map[uuid.UUID]float64)
 
-	// iterate all agents on our bike
-	agents := bb.GetFellowBikers()
-	// TODO: find a better strategy
-	for _, agent := range agents {
-		// give good agent a higher weighting
+	for _, agent := range fellowBikers {
+		energyWeight := agent.GetEnergyLevel() / GlobalParameters.EnergyThreshold
+		reputationWeight := bb.GetAverageReputation(agent)
+		colorWeight := calculateColorPreference(bb.GetColour(), agent.GetColour())
 
-		weights[agent.GetID()] = bb.QueryReputation(agent.GetID())
-
-		// give ourself a high weighting
-		if agent.GetID() == bb.GetID() {
-			weights[agent.GetID()] = 1
-		}
+		// Combining the factors with equal importance
+		combinedWeight := (energyWeight + reputationWeight + colorWeight) / 3.0
+		weights[agent.GetID()] = combinedWeight
+		totalWeight += combinedWeight
 	}
 
-	return softmax(weights)
+	// Normalize weights
+	for agentID := range weights {
+		weights[agentID] /= totalWeight
+	}
+
+	return weights
 }
 
 // In Democracy, dicide the VotingMap for lootboxList
