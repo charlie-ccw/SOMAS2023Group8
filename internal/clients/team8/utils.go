@@ -1,6 +1,7 @@
-package team_8
+package team8
 
 import (
+	"SOMAS2023/internal/common/objects"
 	"SOMAS2023/internal/common/utils"
 	"math"
 	"sort"
@@ -19,22 +20,6 @@ func CalculateGiniIndexFromAB(A, B float64) float64 {
 	giniIndex := A / (A + B)
 
 	return giniIndex
-}
-
-// sort loot boxes by their scores
-func sortLootBoxesByScore(combinedScores map[uuid.UUID]float64) []uuid.UUID {
-	// Create a slice of boxes to sort
-	var boxes []uuid.UUID
-	for boxID := range combinedScores {
-		boxes = append(boxes, boxID)
-	}
-
-	// Sort the slice based on scores
-	sort.Slice(boxes, func(i, j int) bool {
-		return combinedScores[boxes[i]] > combinedScores[boxes[j]]
-	})
-
-	return boxes
 }
 
 func softmax(preferences map[uuid.UUID]float64) map[uuid.UUID]float64 {
@@ -64,12 +49,6 @@ func calculateColorPreference(agentColor, boxColor utils.Colour) float64 {
 	return 0
 }
 
-// calculateEnergyWeighting adjusts the distance preference based on the agent's energy level
-func calculateEnergyWeighting(energyLevel float64) float64 {
-	// Assuming the energy level is between 0 and 1, inverse it to give higher weight to closer loot boxes when energy is low
-	return 1 - energyLevel
-}
-
 // rankByPreference sorts the loot boxes by preference
 func rankByPreference(preferences map[uuid.UUID]float64) []uuid.UUID {
 	type kv struct {
@@ -94,14 +73,78 @@ func rankByPreference(preferences map[uuid.UUID]float64) []uuid.UUID {
 	return rankedIDs
 }
 
-// selectTopChoices selects the top choices based on the ranking
-func selectTopChoices(rankedIDs []uuid.UUID, numChoices int) uuid.UUID {
-	if len(rankedIDs) == 0 {
-		return uuid.Nil // No loot boxes available
+// the function is used to map uuid of agents to real baseAgent object
+func (bb *Agent8) UuidToAgentMap(pendingAgents []uuid.UUID) map[uuid.UUID]objects.IBaseBiker {
+	agentMap := make(map[uuid.UUID]objects.IBaseBiker)
+	megaBikes := bb.GetGameState().GetMegaBikes()
+
+	for _, megaBike := range megaBikes {
+		for _, agent := range megaBike.GetAgents() {
+			for _, uuid := range pendingAgents {
+				if agent.GetID() == uuid {
+					agentMap[uuid] = agent
+				}
+			}
+		}
 	}
-	if numChoices > len(rankedIDs) {
-		numChoices = len(rankedIDs)
+
+	return agentMap
+}
+
+// CalculateAverageEnergy calculates the average energy level for agents on a specific bike.
+func (bb *Agent8) CalculateAverageEnergy(bikeID uuid.UUID) float64 {
+	// Step 1: Get fellowBikers from the specified bike
+	fellowBikers := bb.GetGameState().GetMegaBikes()[bikeID].GetAgents()
+
+	// Step 2: Ensure there is at least one agent
+	if len(fellowBikers) == 0 {
+		return 0.0 // or handle this case according to your requirements
 	}
-	// For this example, just select the top choice
-	return rankedIDs[0]
+
+	// Step 3: Calculate the sum of energy levels
+	sum := 0.0
+	for _, agent := range fellowBikers {
+		sum += agent.GetEnergyLevel()
+	}
+
+	// Step 4: Calculate the average
+	average := sum / float64(len(fellowBikers))
+
+	return average
+}
+
+// CountAgentsWithSameColour counts the number of agents with the same colour as the reference agent on a specific bike.
+func (bb *Agent8) CountAgentsWithSameColour(bikeID uuid.UUID) int {
+	// Step 1: Get reference colour from the BaseBiker
+	referenceColour := bb.GetColour()
+
+	// Step 2: Get fellowBikers from the specified bike
+	fellowBikers := bb.GetGameState().GetMegaBikes()[bikeID].GetAgents()
+
+	// Step 3: Ensure there is at least one agent
+	if len(fellowBikers) == 0 {
+		return 0 // or handle this case according to your requirements
+	}
+
+	// Step 4: Count agents with the same colour as the reference agent
+	count := 0
+	for _, agent := range fellowBikers {
+		if agent.GetColour() == referenceColour {
+			count++
+		}
+	}
+
+	return count
+}
+
+func (bb *Agent8) GetAverageReputation(agent objects.IBaseBiker) float64 {
+	averageReputation := 0.0
+	agentNum := 0
+	for _, reputation := range agent.GetReputation() {
+		averageReputation += reputation
+		if reputation != 0 {
+			agentNum++
+		}
+	}
+	return averageReputation / float64(agentNum)
 }

@@ -3,8 +3,9 @@ package server
 import (
 	"SOMAS2023/internal/common/objects"
 	"SOMAS2023/internal/common/utils"
-	"github.com/google/uuid"
 	"maps"
+
+	"github.com/google/uuid"
 )
 
 func (gs GameStateDump) GetLootBoxes() map[uuid.UUID]objects.ILootBox {
@@ -63,10 +64,6 @@ func (a AgentDump) GetID() uuid.UUID {
 	return a.ID
 }
 
-func (a AgentDump) GetForces() utils.Forces {
-	return a.Forces
-}
-
 func (a AgentDump) GetColour() utils.Colour {
 	return a.Colour
 }
@@ -87,16 +84,16 @@ func (a AgentDump) GetPoints() int {
 	return a.Points
 }
 
-func (a AgentDump) GetResourceAllocationParams() objects.ResourceAllocationParams {
-	return a.ResourceAllocationParams
-}
-
 func (a AgentDump) GetBikeStatus() bool {
 	return a.OnBike
 }
 
 func (a AgentDump) GetReputation() map[uuid.UUID]float64 {
 	return maps.Clone(a.Reputation)
+}
+
+func (a AgentDump) GetGroupID() int {
+	return a.GroupID
 }
 
 func (b BikeDump) GetAgents() []objects.IBaseBiker {

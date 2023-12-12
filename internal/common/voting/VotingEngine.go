@@ -3,7 +3,6 @@ package voting
 import (
 	"SOMAS2023/internal/common/utils"
 	"errors"
-	"math"
 	"sort"
 
 	"github.com/google/uuid"
@@ -34,21 +33,21 @@ func (ivm IdVoteMap) GetVotes() map[uuid.UUID]float64 {
 // this function will take in a list of maps from ids to their corresponding vote (yes/ no in the case of acceptance)
 // and retunr a list of ids that can be accepted according to some metric (ie more than half voted yes)
 // ranked according to a metric (ie overall number of yes's)
-func GetAcceptanceRanking(rankings []map[uuid.UUID]bool) []uuid.UUID {
+func GetAcceptanceRanking(rankings map[uuid.UUID]map[uuid.UUID]bool, weights map[uuid.UUID]float64) []uuid.UUID {
 	// sum the number of acceptance rankings for all the agents
-	cumulativeRank := make(map[uuid.UUID]int)
-	quorum := len(rankings) / 2
-	for _, ranking := range rankings {
+	cumulativeRank := make(map[uuid.UUID]float64)
+	quorum := float64(len(rankings)) / 2.0
+	for voter, ranking := range rankings {
 		for agent, outcome := range ranking {
 			val, ok := cumulativeRank[agent]
 			if outcome && ok {
-				cumulativeRank[agent] = val + 1
+				cumulativeRank[agent] = val + weights[voter]
 			} else if outcome {
-				cumulativeRank[agent] = 1
+				cumulativeRank[agent] = 1.0
 			}
 		}
 	}
-	passedUnsorted := make(map[uuid.UUID]int)
+	passedUnsorted := make(map[uuid.UUID]float64)
 	for agent, val := range cumulativeRank {
 		if val > quorum {
 			passedUnsorted[agent] = val
@@ -58,7 +57,7 @@ func GetAcceptanceRanking(rankings []map[uuid.UUID]bool) []uuid.UUID {
 	// sort according to ranking
 	unsortedAcceptedList := make([]uuid.UUID, len(passedUnsorted))
 	i := 0
-	for key, _ := range passedUnsorted {
+	for key := range passedUnsorted {
 		unsortedAcceptedList[i] = key
 		i += 1
 	}
@@ -79,48 +78,83 @@ func SumOfValues(voteMap IVoter) float64 {
 
 // Returns the normalized vote outcome (assumes all the maps contain a voting between 0-1
 // for each option, and that all the votings sum to 1)
-func CumulativeDist(voters []IVoter) (map[uuid.UUID]float64, error) {
+func CumulativeDist(voters map[uuid.UUID]IVoter, weights map[uuid.UUID]float64) map[uuid.UUID]float64 {
 	if len(voters) == 0 {
 		panic("no votes provided")
 	}
 	// Vote checks for each voter
 	aggregateVotes := make(map[uuid.UUID]float64)
-	for _, IVoter := range voters {
-		if math.Abs(SumOfValues(IVoter)-1.0) > utils.Epsilon {
-			return nil, errors.New("distribution doesn't sum to 1")
-		}
-		votes := IVoter.GetVotes()
+
+	// initialise votes to 0.0
+	for voter := range voters {
+		aggregateVotes[voter] = 0.0
+	}
+
+	for agentID, voter := range voters {
+		voteSum := SumOfValues(voter)
+		votes := voter.GetVotes()
+		weight := weights[agentID]
 		for id, vote := range votes {
-			aggregateVotes[id] += vote
+			aggregateVotes[id] += weight * vote / voteSum
 		}
+	}
+
+	normalizeFactor := 0.0
+	for _, vote := range aggregateVotes {
+		normalizeFactor += vote
+	}
+	if normalizeFactor == 0.0 {
+		panic("all votes summed to zero")
 	}
 	// normalising step for all voters involved
 	for agentId, vote := range aggregateVotes {
-		aggregateVotes[agentId] = vote / float64(len(voters))
+		aggregateVotes[agentId] = vote / normalizeFactor
 	}
-	return aggregateVotes, nil
+	return aggregateVotes
+}
+
+// return the votesMap
+func GetVotesMap(voters map[uuid.UUID]IVoter) map[uuid.UUID]map[uuid.UUID]float64 {
+	if len(voters) == 0 {
+		panic("no votes provided")
+	}
+	// Vote checks for each voter
+	VotesOfAgents := make(map[uuid.UUID]map[uuid.UUID]float64)
+	for agentID, voter := range voters {
+		voteSum := SumOfValues(voter)
+		votes := voter.GetVotes()
+		for id := range votes {
+			if id == uuid.Nil {
+				panic("agent voted for a nil uuid")
+			}
+			votes[id] /= voteSum
+		}
+		VotesOfAgents[agentID] = votes
+	}
+
+	return VotesOfAgents
 }
 
 // returns the winner accoring to chosen voting strategy (assumes all the maps contain a voting between 0-1
 // for each option, and that all the votings sum to 1)
-func WinnerFromDist(voters []IVoter) uuid.UUID {
-	// TODO handle the error
-	aggregateVotes, _ := CumulativeDist(voters)
-
-	var randomWinner, winner uuid.UUID
-	maxVote := 0.0
-	for id, vote := range aggregateVotes {
-		randomWinner = id
-		if vote > maxVote {
-			maxVote = vote
-			winner = id
-		}
+func WinnerFromDist(voters map[uuid.UUID]IVoter, voteWeight map[uuid.UUID]float64) uuid.UUID {
+	VotesOfAgents := GetVotesMap(voters)
+	var winner uuid.UUID
+	switch utils.VoteAction {
+	case utils.PLURALITY:
+		winner = Plurality(VotesOfAgents, voteWeight)
+	case utils.RUNOFF:
+		winner = Runoff(VotesOfAgents, voteWeight)
+	case utils.BORDACOUNT:
+		winner = BordaCount(VotesOfAgents, voteWeight)
+	case utils.INSTANTRUNOFF:
+		winner = InstantRunoff(VotesOfAgents, voteWeight)
+	case utils.APPROVAL:
+		winner = Approval(VotesOfAgents, voteWeight)
+	case utils.COPELANDSCORING:
+		winner = CopelandScoring(VotesOfAgents, voteWeight)
 	}
-
-	if winner == uuid.Nil {
-		winner = randomWinner
-	}
-
+	// TODO call group 8 voting function
 	return winner
 }
 
@@ -160,4 +194,27 @@ func WinnerFromGovernance(voters []GovernanceVote) (utils.Governance, error) {
 	}
 
 	return winner, nil
+}
+
+// Need to check if the input param is expecting a vote that is just one governance type
+func TallyFoundingVotes(voters map[uuid.UUID]utils.Governance) (map[utils.Governance]int, error) {
+	// check if length of votes is greater than one
+	if len(voters) == 0 {
+		return nil, errors.New("no votes provided")
+	}
+
+	// Summing up the votes for each governance type
+	aggregateFoundingTotals := make(map[utils.Governance]int)
+
+	// Get the governance type for each agent
+	for _, vote := range voters {
+		// Add to the tally for each governance type
+		if val, ok := aggregateFoundingTotals[vote]; ok {
+			aggregateFoundingTotals[vote] = val + 1
+		} else {
+			aggregateFoundingTotals[vote] = 1
+		}
+	}
+
+	return aggregateFoundingTotals, nil
 }
