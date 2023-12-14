@@ -473,7 +473,7 @@ func (bb *Agent8) DecideForce(direction uuid.UUID) {
 	bb.updateAgentActionMap()
 	bb.updateLoopScoreMap()
 	bb.UpdateReputation()
-	// bb.UpdateUtility()
+	bb.UpdateSatisfaction()
 
 	// store the target and location of current loop for self-reflection parameter calculation
 	bb.previousTargetLocation = bb.GetGameState().GetLootBoxes()[direction].GetPosition()
@@ -590,8 +590,12 @@ func (bb *Agent8) UpdateReputation() {
 func (bb *Agent8) UpdateSatisfaction() {
 	alpha := 0.8
 	beta := 0.5
+
 	distance_prev := calculateDistance(bb.previousLocation, bb.previousTargetLocation)
-	distance_curr := calculateDistance(bb.GetLocation(), bb.previousTargetLocation)
+	distance_curr := distance_prev
+	if bb.GetBike() != uuid.Nil {
+		distance_curr = calculateDistance(bb.GetLocation(), bb.previousTargetLocation)
+	}
 	distance_diff := distance_prev - distance_curr
 	energy_diff := bb.previousEnergy - bb.GetEnergyLevel()
 	if energy_diff < 0 && distance_diff > 0 {
