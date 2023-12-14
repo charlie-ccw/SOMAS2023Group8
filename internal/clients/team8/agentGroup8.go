@@ -27,8 +27,6 @@ type Agent8 struct {
 	//-----------------New parameters for recording social connection-----------------
 	previousOwnColour    utils.Colour // record the colour of our bike of last loop
 	previousTargetColour utils.Colour // record the colour of target lootbox of last loop
-	utility              float64      // New parameters for recording utility
-	fairness             float64      // New parameters for recording gini index
 	satisfaction         float64      // New parameters for recording satisfaction(0,1)
 }
 
@@ -473,7 +471,7 @@ func (bb *Agent8) DecideForce(direction uuid.UUID) {
 	bb.updateAgentActionMap()
 	bb.updateLoopScoreMap()
 	bb.UpdateReputation()
-	bb.UpdateSatisfaction()
+	// bb.UpdateSatisfaction()
 
 	// store the target and location of current loop for self-reflection parameter calculation
 	bb.previousTargetLocation = bb.GetGameState().GetLootBoxes()[direction].GetPosition()
