@@ -27,7 +27,7 @@ def combine_sheets(file_list, output_file='combined_excel.xlsx'):
 
 # Path to the directory containing the GoLang script and statistics.xlsx
 # golang_script_directory = r"C:\Users\rohan\OneDrive - Imperial College London\Imperial Year 4\SOMAS\experiments\SOMAS2023"
-golang_script_directory = r"C:\Users\ishaa\OneDrive - Imperial College London\EIE\Year 4\SOMAS\actualactual\finalOurAgent\SOMAS2023"
+golang_script_directory = r"D:\Imperial\SOMAS\SOMAS2023Group8"
 
 games = 2  # Specify the number of iterations
 excel_files = []

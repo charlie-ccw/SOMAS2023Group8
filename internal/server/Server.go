@@ -6,6 +6,7 @@ import (
 	"SOMAS2023/internal/common/voting"
 	"encoding/json"
 	"fmt"
+	"math"
 	"os"
 
 	baseserver "github.com/MattSScott/basePlatformSOMAS/BaseServer"
@@ -116,14 +117,141 @@ func (s *Server) GetDeadAgents() map[uuid.UUID]objects.IBaseBiker {
 	return s.deadAgents
 }
 
+func CalculateAverage(values map[uuid.UUID]float64) float64 {
+	var total float64
+	for _, value := range values {
+		total += value
+	}
+	return total / float64(len(values))
+}
+
+func CalculateVariance(values map[uuid.UUID]float64, mean float64) float64 {
+	var sumOfSquares float64
+	for _, value := range values {
+		difference := value - mean
+		sumOfSquares += difference * difference
+	}
+	return sumOfSquares / float64(len(values))
+}
+
+func filterMapByGroup(originalMap map[uuid.UUID]float64, groupMap map[uuid.UUID]int, groupID int) map[uuid.UUID]float64 {
+	filteredMap := make(map[uuid.UUID]float64)
+	for key, value := range originalMap {
+		if groupMap[key] == groupID {
+			filteredMap[key] = value
+		}
+	}
+	return filteredMap
+}
+
+type GroupStatistics struct {
+	GroupID          int
+	AverageLifetime  float64
+	VarianceLifetime float64
+	AverageEnergy    float64
+	VarianceEnergy   float64
+	AveragePoints    float64
+	VariancePoints   float64
+}
+
+// func calculateGroupStatistics(statistics GameStatistics, groupID int) GroupStatistics {
+//     groupLifetime := filterMapByGroup(statistics.Average.AgentLifetime, statistics.AgentIDToGroupID, groupID)
+//     groupEnergyAverage := filterMapByGroup(statistics.Average.AgentEnergyAverage, statistics.AgentIDToGroupID, groupID)
+//     groupPointsAverage := filterMapByGroup(statistics.Average.AgentPointsAverage, statistics.AgentIDToGroupID, groupID)
+
+//     avgLifetime := CalculateAverage(groupLifetime)
+//     varLifetime := CalculateVariance(groupLifetime, avgLifetime)
+
+//     avgEnergyAverage := CalculateAverage(groupEnergyAverage)
+//     varEnergyAverage := CalculateVariance(groupEnergyAverage, avgEnergyAverage)
+
+//     avgPointsAverage := CalculateAverage(groupPointsAverage)
+//     varPointsAverage := CalculateVariance(groupPointsAverage, avgPointsAverage)
+
+//     return GroupStatistics{
+//         GroupID:          groupID,
+//         AverageLifetime:  avgLifetime,
+//         VarianceLifetime: varLifetime,
+//         AverageEnergy:    avgEnergyAverage,
+//         VarianceEnergy:   varEnergyAverage,
+//         AveragePoints:    avgPointsAverage,
+//         VariancePoints:   varPointsAverage,
+//     }
+// }
+
 func (s *Server) outputResults(gameStates [][]GameStateDump) {
 	statistics := CalculateStatistics(gameStates)
 
-	statisticsJson, err := json.MarshalIndent(statistics.Average, "", "    ")
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println("Average Statistics:\n" + string(statisticsJson))
+	// statisticsJson, err := json.MarshalIndent(statistics.Average, "", "    ")
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// fmt.Println("Average Statistics:\n" + string(statisticsJson))
+	avgLifetime := CalculateAverage(statistics.Average.AgentLifetime)
+	fmt.Printf("Average Agent Lifetime: %v\n", avgLifetime)
+	fmt.Printf("Variance in Agent Lifetime: %v\n", math.Sqrt(CalculateVariance(statistics.Average.AgentLifetime, avgLifetime)))
+
+	avgEnergy := CalculateAverage(statistics.Average.AgentEnergyAverage)
+	fmt.Printf("Average Agent Energy Average: %v\n", avgEnergy)
+	fmt.Printf("Variance in Agent Energy: %v\n", math.Sqrt(CalculateVariance(statistics.Average.AgentEnergyAverage, avgEnergy)))
+
+	avgPointsAverage := CalculateAverage(statistics.Average.AgentPointsAverage)
+	fmt.Printf("Average Agent Points Average: %v\n", avgPointsAverage)
+	fmt.Printf("Variance in Agent Points: %v\n", math.Sqrt(CalculateVariance(statistics.Average.AgentPointsAverage, avgPointsAverage)))
+
+	// Filter maps for Group 2 and Group 8 for all attributes
+	// List of group IDs to analyze
+	// groupIDs := []int{1, 2, 3, 4, 5, 6, 7, 8} // Add more group IDs as needed
+
+	// // Slice to hold statistics for all groups
+	// var allGroupStats []GroupStatistics
+
+	// // Calculate statistics for each group and add to the slice
+	// for _, groupID := range groupIDs {
+	//     groupStats := calculateGroupStatistics(statistics, groupID)
+	//     allGroupStats = append(allGroupStats, groupStats)
+
+	//     // Print statistics for the group
+	//     fmt.Printf("Group %d Statistics:\n", groupStats.GroupID)
+	//     fmt.Printf("Average Agent Lifetime: %v\n", groupStats.AverageLifetime)
+	//     fmt.Printf("Variance in Agent Lifetime: %v\n", groupStats.VarianceLifetime)
+	//     fmt.Printf("Average Agent Energy Average: %v\n", groupStats.AverageEnergy)
+	//     fmt.Printf("Variance in Agent Energy Average: %v\n", groupStats.VarianceEnergy)
+	//     fmt.Printf("Average Agent Points Average: %v\n", groupStats.AveragePoints)
+	//     fmt.Printf("Variance in Agent Points Average: %v\n", groupStats.VariancePoints)
+	//     fmt.Println()
+	// }
+
+	// redColor := "\033[31m"
+	// resetColor := "\033[0m"
+
+	// // Rank by Average Agent Lifetime
+	// sort.Slice(allGroupStats, func(i, j int) bool {
+	//     return allGroupStats[i].AverageLifetime > allGroupStats[j].AverageLifetime
+	// })
+
+	// fmt.Println("Ranking by Average Agent Lifetime:")
+	// for i, gs := range allGroupStats {
+	// 	if gs.GroupID == 2 || gs.GroupID == 8 {
+	//         fmt.Printf("Rank %d: %sGroup %d%s with Average Lifetime %v\n", i+1, redColor, gs.GroupID, resetColor, gs.AverageLifetime)
+	//     } else {
+	//         fmt.Printf("Rank %d: Group %d with Average Lifetime %v\n", i+1, gs.GroupID, gs.AverageLifetime)
+	//     }
+	// }
+
+	// // Rank by Average Agent Points
+	// sort.Slice(allGroupStats, func(i, j int) bool {
+	//     return allGroupStats[i].AveragePoints > allGroupStats[j].AveragePoints
+	// })
+
+	// fmt.Println("\nRanking by Average Agent Points:")
+	// for i, gs := range allGroupStats {
+	//     if gs.GroupID == 2 || gs.GroupID == 8 {
+	//         fmt.Printf("Rank %d: %sGroup %d%s with Average Point %v\n", i+1, redColor, gs.GroupID, resetColor, gs.AveragePoints)
+	//     } else {
+	//         fmt.Printf("Rank %d: Group %d with Average Point %v\n", i+1, gs.GroupID, gs.AveragePoints)
+	//     }
+	// }
 
 	file, err := os.Create("statistics.xlsx")
 	if err != nil {
