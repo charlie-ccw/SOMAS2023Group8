@@ -74,24 +74,24 @@ def calculate_averages(file_path, group_name_prefix='(Group: ', group_number=8, 
 
 # Path to the directory containing the GoLang script and statistics.xlsx
 # golang_script_directory = r"C:\Users\rohan\OneDrive - Imperial College London\Imperial Year 4\SOMAS\experiments\SOMAS2023"
-golang_script_directory = r"/Users/mac/Desktop/SOMAS/SOMAS2023Group8"
-data_directory = r"/Users/mac/Desktop/SOMAS/SOMAS2023Group8/experiment_data"
+golang_script_directory = r"/Users/chenchuwen/SOMAS/SOMAS2023Group8"
+data_directory = r"/Users/chenchuwen/SOMAS/SOMAS2023Group8/experiment_data"
 all_data = []
-games = 10  # Specify the number of iterations
-excel_files = []
+games = 100  # Specify the number of iterations
 original_file_name = 'statistics.xlsx'
 completed = 0
 
 while completed < games:
     print(f"==================== Iteration {completed + 1} ====================")
+    excel_files = []
     # Run the GoLang script that generates statistics.xlsx
     try:
         result = subprocess.run(['go', 'run', 'main.go'], cwd=golang_script_directory)
         if result.returncode == 0: 
             
         ##------------------------------ names need to be changed ---------------------------------------------
-            title = "DecideJoing with reputation"
-            xlsx_file = f"experiment_data/DecideJoing_wit_reputation_{completed+1}.xlsx"
+            title = "Final Performance"
+            xlsx_file = f"experiment_data/Final_Performance_{completed+1}.xlsx"
         ##-----------------------------------------------------------------------------------------------------
         
             # Copy and rename the newly generated statistics.xlsx to a new name
@@ -197,7 +197,7 @@ while completed < games:
             # axs[2].legend(loc='upper right',fontsize=7.5)
             # axs[2].grid(True)
             plt.tight_layout()
-            fig.savefig(os.path.join('experiment_image', f'{title}_{completed}.jpg'), dpi=300)  # Specify the folder path and desired file name
+            fig.savefig(os.path.join('experiment_image', f'{title}_{completed}.jpg'), dpi=800)  # Specify the folder path and desired file name
             new_data_df = pd.DataFrame(all_data, columns=columns)
             # 创建一个新的工作簿对象或加载已有的工作簿
             try:

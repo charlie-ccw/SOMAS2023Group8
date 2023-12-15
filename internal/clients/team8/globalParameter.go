@@ -11,7 +11,7 @@ type GP struct {
 }
 
 var GlobalParameters GP = GP{
-	EnergyThreshold:              0.1,
+	EnergyThreshold:              0.6,
 	DistanceThresholdForVoting:   (utils.GridHeight + utils.GridWidth) / 4,
 	ThresholdForJoiningDecision:  0.2,
 	ThresholdForChangingMegabike: 0.5,
