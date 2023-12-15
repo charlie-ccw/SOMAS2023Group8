@@ -23,7 +23,7 @@ var AgentInitFunctions = []AgentInitFunction{
 	// team3.GetT3Agent,    // Team 3
 	team4.GetBiker4,     // Team 4
 	team5Agent.GetBiker, // Team 5
-	// team6.InitialiseBiker6,  // Team 6
+	//team6.InitialiseBiker6,  // Team 6
 	team7.GetTeamSevenBiker, // Team 7
 	team8.GetIBaseBiker,     // Team 8
 }

@@ -7,11 +7,13 @@ type GP struct {
 	DistanceThresholdForVoting   float64
 	ThresholdForJoiningDecision  float64
 	ThresholdForChangingMegabike float64
+	repRound                     int
 }
 
 var GlobalParameters GP = GP{
-	EnergyThreshold:              0.6,
+	EnergyThreshold:              0.1,
 	DistanceThresholdForVoting:   (utils.GridHeight + utils.GridWidth) / 4,
 	ThresholdForJoiningDecision:  0.2,
 	ThresholdForChangingMegabike: 0.5,
+	repRound:                     10,
 }

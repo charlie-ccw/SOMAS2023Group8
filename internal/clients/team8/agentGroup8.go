@@ -27,8 +27,6 @@ type Agent8 struct {
 	//-----------------New parameters for recording social connection-----------------
 	previousOwnColour    utils.Colour // record the colour of our bike of last loop
 	previousTargetColour utils.Colour // record the colour of target lootbox of last loop
-	utility              float64      // New parameters for recording utility
-	fairness             float64      // New parameters for recording gini index
 	satisfaction         float64      // New parameters for recording satisfaction(0,1)
 }
 
@@ -52,6 +50,7 @@ func (bb *Agent8) DecideGovernance() utils.Governance {
 	} else {
 		return utils.Democracy
 	}
+
 }
 
 // Decide the voting weight for each agent on the bike for dictator
@@ -107,7 +106,7 @@ func (bb *Agent8) VoteForKickout() map[uuid.UUID]int {
 		// logic of kickout decision
 		agentID := agent.GetID()
 		// if our reputation of the agent is lower than baseline, kick the agent
-		if bb.QueryReputation(agentID) < 0.0 {
+		if bb.QueryReputation(agentID) < -0.2 {
 			voteResults[agentID] = 1
 		} else {
 			voteResults[agentID] = 0
@@ -128,7 +127,7 @@ func (bb *Agent8) DecideKickOut() []uuid.UUID {
 		// logic of kickout decision
 		agentID := agent.GetID()
 		// if our reputation of the agent is much lower than baseline, kick the agent
-		if bb.QueryReputation(agentID) < -0.2 {
+		if bb.QueryReputation(agentID) < 0.0 {
 			kickoutList = append(kickoutList, agentID)
 		}
 	}
@@ -246,7 +245,7 @@ func (bb *Agent8) DecideAction() objects.BikerAction {
 	var loopNum = 0.0
 
 	// calculate total reflection score for current bike
-	for i := 1; i <= 10; i++ {
+	for i := 1; i <= GlobalParameters.repRound; i++ {
 		for bikeid, score := range bb.loopScoreMap[i] {
 			if bikeid == selfBikeId {
 				selfBikeScore += score
@@ -533,7 +532,7 @@ func (bb *Agent8) updateAgentActionMap() {
 	if bb.agentsActionsMap == nil {
 		bb.agentsActionsMap = make(map[int]map[uuid.UUID]float64)
 	}
-	for i := 1; i < 10; i++ {
+	for i := 1; i < GlobalParameters.repRound; i++ {
 		bb.agentsActionsMap[i] = bb.agentsActionsMap[i+1]
 	}
 	bb.agentsActionsMap[10] = currentLoopAgentActionMap
@@ -560,7 +559,7 @@ func (bb *Agent8) updateLoopScoreMap() {
 	if bb.loopScoreMap == nil {
 		bb.loopScoreMap = make(map[int]map[uuid.UUID]float64)
 	}
-	for i := 1; i < 10; i++ {
+	for i := 1; i < GlobalParameters.repRound; i++ {
 		bb.loopScoreMap[i] = bb.loopScoreMap[i+1]
 	}
 	bb.loopScoreMap[10] = make(map[uuid.UUID]float64)
@@ -571,7 +570,7 @@ func (bb *Agent8) updateLoopScoreMap() {
 func (bb *Agent8) UpdateReputation() {
 	agentCount := make(map[uuid.UUID]float64)
 	agentScore := make(map[uuid.UUID]float64)
-	for i := 1; i <= 10; i++ {
+	for i := 1; i <= GlobalParameters.repRound; i++ {
 		for agentId, Score := range bb.agentsActionsMap[i] {
 			if Score != 0.0 {
 				agentScore[agentId] += Score * math.Pow(0.8, float64(i))
